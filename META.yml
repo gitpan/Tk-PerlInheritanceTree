@@ -1,0 +1,14 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         Tk-PerlInheritanceTree
+version:      0.01
+version_from: lib/Tk/PerlInheritanceTree.pm
+installdirs:  site
+requires:
+    Tk:                            8.4
+    Tk::GraphItems::Connector:     0.01
+    Tk::GraphItems::TextBox:       0.01
+    Tk::PerlMethodList:            0.01
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17
