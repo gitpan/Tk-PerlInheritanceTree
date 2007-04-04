@@ -81,21 +81,25 @@ at your option, any later version of Perl 5 you may have available.
 
 =cut
 package Tk::PerlInheritanceTree;
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 use warnings;
 use strict;
+require B::Stash;
+
 require Tk;
 require Tk::GraphItems::TextBox;
 require Tk::GraphItems::Connector;
 require Tk::PerlMethodList;
 use base 'Tk::Frame';
 
+
+
 Tk::Widget->Construct('PerlInheritanceTree');
 unless (caller()){_test_()}
 
 sub Populate{
-  my ($self,@args)=@_;
-  $self->SUPER::Populate(@args);
+  my ($self,$args)=@_;
+  $self->SUPER::Populate($args);
   my $can = $self->Scrolled('Canvas',
 			    -scrollregion=> [qw/0 0 200 200/]
 			   )->pack(-expand =>1,
@@ -108,11 +112,12 @@ sub Populate{
 
   my $frame = $self->Frame()->pack;
   my $frame2 = $frame->Frame()->pack;
-  my $en = $frame2->Entry(-textvariable=>\$self->{class}
+  my $en = $frame2->Entry(-textvariable=> \$self->{class},
+                          -background  => 'white',
 			 )->pack(-side=>'left');
   my $bt=$frame2->Button(-text => 'Classtree',
-			 -command=>sub {$self->show_classtree($self->{class});
-				      })->pack(-side=>'left');
+			 -command=>sub {$self->show_classtree()}
+			)->pack(-side=>'left');
 
   $frame -> Label(-textvariable=>\$self->{status},
 		  -relief      =>'sunken'
@@ -121,10 +126,11 @@ sub Populate{
   $self->ConfigSpecs(-background          => [$c],
 		     -classname           => ['METHOD'],
 		     -multiple_methodlists=> ['PASSIVE','','',0],
-		     -gridsize            => ['PASSIVE','','',100],
+		     -gridsize            => ['PASSIVE','','',120],
 		     DEFAULT              => [$c],
 
 		    );
+  $self->configure(-gridsize=>$args->{-gridsize}||120);
   $self;
 }
 
@@ -138,7 +144,7 @@ sub _setup_bindings{
 					   y   =>0,
 					   canvas=>$c);
   $dummy->bind_class('<3>',sub{$self->node_clicked($_[0])});
-  $dummy->bind_class('<ButtonRelease-1>',sub{$self->node_clicked($_[0]) 
+  $dummy->bind_class('<ButtonRelease-1>',sub{$self->node_clicked($_[0])
 					       unless $_[0]->was_dragged});
 }
 
@@ -200,19 +206,30 @@ sub classname{
   $self->show_classtree;
 }
 sub show_classtree{
-  my ($self) = @_;
-  my $class = $self->{class};
-
-  unless (eval "require $class"){
-    $self->{status} = "Error: Package '$class' not found!";
-    return;
-  }
-  $self->{status} = "Showing inheritance tree for class '$class'";
-  $self->{tree} = {};
-  $self->{nodes}= [];
-  $self->_build_classtree(0,1,$class);
-  $self->_place_nodes;
-  $self->_place_nodes;
+    my ($self) = @_;
+    my $class = $self->{class};
+    eval "require $class";
+    my %is_loaded_package
+        = map {s/::$//;$_ => 1} B::Stash::scan($main::{'main::'});
+    
+    unless ($is_loaded_package{$class}){
+        $self->{status} = "Error: Package '$class' not found!";
+        return;
+    }
+    # there are dummy classes like Tk::Ev ... Try to sort these out:
+    no strict ('refs');
+    unless (scalar (%{*{$class.'::'}{HASH}})){
+        $self->{status} = "Error: Package '$class' has no symbols!";
+        return;
+    }
+    
+    use strict;
+    $self->{status} = "Showing inheritance tree for class '$class'";
+    $self->{tree} = {};
+    $self->{nodes}= [];
+    $self->_build_classtree(0,1,$class);
+    $self->_place_nodes;
+    $self->_place_nodes;
 }
 sub node_clicked{
   my ($self,$node) = @_;
@@ -223,8 +240,8 @@ sub node_clicked{
     $ml = $self->PerlMethodList;
   }
   
-  $ml->configure(-classname=>$text,
-		 -filter   =>'');
+  $ml->configure(-classname => $text,
+		 -filter    => '');
   $ml->show_methods;
   $ml->deiconify;
   $ml->focus;
