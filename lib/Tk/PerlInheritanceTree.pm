@@ -56,7 +56,7 @@ same as method classname()
 =item B<-gridsize>
 
 configure(-gridsize=>$size) 
-Set the distance between nodes to $size pixels. Defaults to 100.
+Set the distance between nodes to $size pixels. Defaults to 120.
 
 =item B<-multiple_methodlists>
 
@@ -81,18 +81,19 @@ at your option, any later version of Perl 5 you may have available.
 
 =cut
 package Tk::PerlInheritanceTree;
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 use warnings;
 use strict;
 require B::Stash;
 
 require Tk;
+require Tk::NumEntry;
 require Tk::GraphItems::TextBox;
 require Tk::GraphItems::Connector;
 require Tk::PerlMethodList;
 use base 'Tk::Frame';
 
-
+use Data::Dumper;
 
 Tk::Widget->Construct('PerlInheritanceTree');
 unless (caller()){_test_()}
@@ -109,28 +110,55 @@ sub Populate{
   $self->{canvas}=$c;
 
   $self -> _setup_bindings;
+  my $bottom_f  = $self->Frame->pack(-fill   => 'x',
+                                #     -expand => 1,
+                                 );
 
-  my $frame = $self->Frame()->pack;
-  my $frame2 = $frame->Frame()->pack;
-  my $en = $frame2->Entry(-textvariable=> \$self->{class},
-                          -background  => 'white',
-			 )->pack(-side=>'left');
-  my $bt=$frame2->Button(-text => 'Classtree',
-			 -command=>sub {$self->show_classtree()}
-			)->pack(-side=>'left');
+  $self -> Label(-textvariable=>\$self->{status},
+                     -relief      =>'sunken'
+		 )->pack(-fill   => 'x',
+                      #   -expand => 1,
+                         -padx   => 10
+                     );
+  my $bottom_left  = $bottom_f->Frame->pack(-side => 'left',
+                                            -padx => 10,
+                                        );
+  my $bottom_right = $bottom_f->Frame->pack(-side => 'left',
+                                            -padx => 10,
+                                        );
 
-  $frame -> Label(-textvariable=>\$self->{status},
-		  -relief      =>'sunken'
-		 )->pack(-fill=>'x');
+  my $en = $bottom_left->Entry(-textvariable=>\$self->{class}
+			 )->pack(-side =>'left',
+                             );
+  my $bt = $bottom_left->Button(-text    => 'Classtree',
+                                -command => sub {$self->show_classtree()}
+                       )->pack(-side =>'left',
+                               -padx => 10,
+                           );
+  $bottom_right->Label(-text => 'Gridsize:',
+                   )->pack(-side => 'left',
+                           -padx => 5,
+                       );
+  $self->{gridsize} =$args->{'-gridsize'} ||= 120;
+  my $ne;
+  $ne = $bottom_right->NumEntry(-minvalue     => 80,
+                                -maxvalue     => 200,
+                                -increment    => 20,
+                                -width        => 4,
+                                -readonly     => 1,
+                                -textvariable => \$self->{gridsize},
+                                -browsecmd    => [$bt,'invoke'],
+                                )->pack(-side => 'left',
+                                    );
+
   $en->bind('<Return>',sub{$bt->Invoke});
   $self->ConfigSpecs(-background          => [$c],
 		     -classname           => ['METHOD'],
 		     -multiple_methodlists=> ['PASSIVE','','',0],
-		     -gridsize            => ['PASSIVE','','',120],
+		     -gridsize            => ['METHOD','','',$self->{gridsize}],
 		     DEFAULT              => [$c],
-
 		    );
-  $self->configure(-gridsize=>$args->{-gridsize}||120);
+
   $self;
 }
 
@@ -205,9 +233,16 @@ sub classname{
   $self->{class} = $class;
   $self->show_classtree;
 }
+sub gridsize{
+    my $self = shift;
+    $self->{gridsize} = $_[0] if ($_[0]);
+    return $self->{gridsize};
+    
+}
 sub show_classtree{
     my ($self) = @_;
     my $class = $self->{class};
+    return unless ($class);
     eval "require $class";
     my %is_loaded_package
         = map {s/::$//;$_ => 1} B::Stash::scan($main::{'main::'});
@@ -240,8 +275,8 @@ sub node_clicked{
     $ml = $self->PerlMethodList;
   }
   
-  $ml->configure(-classname => $text,
-		 -filter    => '');
+  $ml->configure(-classname=>$text,
+		 -filter   =>'');
   $ml->show_methods;
   $ml->deiconify;
   $ml->focus;

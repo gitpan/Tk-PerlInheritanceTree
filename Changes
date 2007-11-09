@@ -4,3 +4,5 @@ Revision history for Perl extension Tk::PerlInheritanceTree.
 	- original version;
 
 0.02  Use B::Stash to find packages.
+
+0.03  Added a NumEntry to change gridsize

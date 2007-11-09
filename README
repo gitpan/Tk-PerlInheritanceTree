@@ -19,6 +19,7 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
 Tk
+Tk::NumEntry;
 Tk::GraphItems::TextBox;
 Tk::GraphItems::Connector;
 Tk::PerlMethodList;
