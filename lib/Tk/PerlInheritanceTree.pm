@@ -71,7 +71,7 @@ Christoph Lamprecht, ch.l.ngre@online.de
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Christoph Lamprecht
+Copyright (C) 2006-2008 by Christoph Lamprecht
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.7 or,
@@ -81,10 +81,10 @@ at your option, any later version of Perl 5 you may have available.
 
 =cut
 package Tk::PerlInheritanceTree;
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 use warnings;
 use strict;
-require B::Stash;
+require Class::Inspector;
 
 require Tk;
 require Tk::NumEntry;
@@ -102,10 +102,10 @@ sub Populate{
   my ($self,$args)=@_;
   $self->SUPER::Populate($args);
   my $can = $self->Scrolled('Canvas',
-			    -scrollregion=> [qw/0 0 200 200/]
-			   )->pack(-expand =>1,
-				   -fill   =>'both'
-				  );
+                            -scrollregion=> [qw/0 0 200 200/]
+                        )->pack(-expand =>1,
+                                -fill   =>'both'
+                            );
   my $c = $can->Subwidget('scrolled');
   $self->{canvas}=$c;
 
@@ -115,8 +115,8 @@ sub Populate{
                                  );
 
   $self -> Label(-textvariable=>\$self->{status},
-                     -relief      =>'sunken'
-		 )->pack(-fill   => 'x',
+                 -relief      =>'sunken'
+             )->pack(-fill   => 'x',
                       #   -expand => 1,
                          -padx   => 10
                      );
@@ -128,7 +128,7 @@ sub Populate{
                                         );
 
   my $en = $bottom_left->Entry(-textvariable=>\$self->{class}
-			 )->pack(-side =>'left',
+                           )->pack(-side =>'left',
                              );
   my $bt = $bottom_left->Button(-text    => 'Classtree',
                                 -command => sub {$self->show_classtree()}
@@ -153,11 +153,11 @@ sub Populate{
 
   $en->bind('<Return>',sub{$bt->Invoke});
   $self->ConfigSpecs(-background          => [$c],
-		     -classname           => ['METHOD'],
-		     -multiple_methodlists=> ['PASSIVE','','',0],
-		     -gridsize            => ['METHOD','','',$self->{gridsize}],
-		     DEFAULT              => [$c],
-		    );
+                     -classname           => ['METHOD'],
+                     -multiple_methodlists=> ['PASSIVE','','',0],
+                     -gridsize            => ['METHOD','','',$self->{gridsize}],
+                     DEFAULT              => [$c],
+                 );
 
   $self;
 }
@@ -168,12 +168,12 @@ sub _setup_bindings{
 
   ####create a Tk::GraphItems instance to set bindings###
   my $dummy = Tk::GraphItems::TextBox->new(text=>'',
-					   x   =>0,
-					   y   =>0,
-					   canvas=>$c);
+                                           x   =>0,
+                                           y   =>0,
+                                           canvas=>$c);
   $dummy->bind_class('<3>',sub{$self->node_clicked($_[0])});
   $dummy->bind_class('<ButtonRelease-1>',sub{$self->node_clicked($_[0])
-					       unless $_[0]->was_dragged});
+                                                 unless $_[0]->was_dragged});
 }
 
 sub _build_classtree{
@@ -184,15 +184,15 @@ sub _build_classtree{
   $self->{nodes}[$row]||=[];
   my $col = (scalar@{$self->{nodes}[$row]}) +1;
   my $node = Tk::GraphItems::TextBox->new(canvas =>  $self->{canvas},
-					  text   =>  $class,
-					  y      => 150,
-					  x      => 150,
-					 );
+                                          text   =>  $class,
+                                          y      => 150,
+                                          x      => 150,
+                                      );
 
   push @{$self->{nodes}[$row]} , $node;
-  if ($node&&$succ_node){
-    Tk::GraphItems::Connector->new(source=>$node,
-				   target=>$succ_node)
+  if ($node && $succ_node){
+    Tk::GraphItems::Connector->new(source => $node,
+                                   target => $succ_node)
   }
   no strict 'refs';
   my @parents = @{$class."::ISA"};
@@ -218,15 +218,15 @@ sub _place_nodes{
     my $col = 0;
     for my $node(@$nodes){
       $node->set_coords($center +(($col-($cols-1)/2)* $gridsz),
-		        $bottom - $row * $gridsz);
+                        $bottom - $row * $gridsz);
       $col++;
     }
     $row++;
   }
   $self->{canvas}->configure(-scrollregion=>[0,
-					     0,
-					     $center*2,
-					     $bottom+ .5*$gridsz]);
+                                             0,
+                                             $center*2,
+                                             $bottom+ .5*$gridsz]);
 }
 sub classname{
   my ($self,$class) = @_;
@@ -237,28 +237,18 @@ sub gridsize{
     my $self = shift;
     $self->{gridsize} = $_[0] if ($_[0]);
     return $self->{gridsize};
-    
 }
 sub show_classtree{
     my ($self) = @_;
     my $class = $self->{class};
     return unless ($class);
     eval "require $class";
-    my %is_loaded_package
-        = map {s/::$//;$_ => 1} B::Stash::scan($main::{'main::'});
-    
-    unless ($is_loaded_package{$class}){
-        $self->{status} = "Error: Package '$class' not found!";
+
+        unless (Class::Inspector->loaded($class)){
+        $self->{status} = "Error: Package '$class' not found !";
         return;
     }
-    # there are dummy classes like Tk::Ev ... Try to sort these out:
-    no strict ('refs');
-    unless (scalar (%{*{$class.'::'}{HASH}})){
-        $self->{status} = "Error: Package '$class' has no symbols!";
-        return;
-    }
-    
-    use strict;
+
     $self->{status} = "Showing inheritance tree for class '$class'";
     $self->{tree} = {};
     $self->{nodes}= [];
@@ -276,7 +266,7 @@ sub node_clicked{
   }
   
   $ml->configure(-classname=>$text,
-		 -filter   =>'');
+                 -filter   =>'');
   $ml->show_methods;
   $ml->deiconify;
   $ml->focus;
@@ -292,8 +282,8 @@ sub _test_{
 
   my $mw = Tk::tkinit();
   my $cg =$mw->PerlInheritanceTree()
-    ->pack(-fill  =>'both',
-	   -expand=>1);
+    ->pack(-fill   => 'both',
+           -expand => 1);
   Tk::MainLoop();
 }
 1;
