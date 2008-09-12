@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Tk::PerlInheritanceTree',
     VERSION_FROM      => 'lib/Tk/PerlInheritanceTree.pm', # finds $VERSION
-    PREREQ_PM         => {Tk                        => '8.4',
+    PREREQ_PM         => {Tk                        => '804.027',
                           Tk::NumEntry              => '2.06',
                           Tk::GraphItems::TextBox   => '0.01',
                           Tk::GraphItems::Connector => '0.01',

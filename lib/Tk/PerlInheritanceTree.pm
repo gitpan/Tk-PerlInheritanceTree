@@ -19,7 +19,9 @@ Tk::PerlInheritanceTree - Display a graphical representation of the inheritance 
 
 Tk::PerlInheritanceTree displays a graphical representation of the inheritance tree for a given class(package)-name. The nodes representing classnames have mouseclick bindings to open a Tk::PerlMethodList - widget. Tk::PerlInheritanceTree is a Tk::Frame-derived widget.
 
-PerlInheritanceTree.pm can be run as stand-alone application.
+PerlInheritanceTree.pm can be run as stand-alone application (see Examples section)
+
+
 
 =head1 SEE ALSO
 
@@ -65,6 +67,19 @@ Allows multiple instances of PerlMethodList to be opened if set to a true value.
 
 =back
 
+
+=head1 EXAMPLES
+
+  Run PerlInheritanceTree from the console:
+
+  perl -MTk::PerlInheritanceTree -e'Tk::PerlInheritanceTree::_test_'
+
+  or:
+
+  perl -MTk::PerlInheritanceTree -e'Tk::PerlInheritanceTree::_test_(shift)' Tk::Menu
+
+
+
 =head1 AUTHOR
 
 Christoph Lamprecht, ch.l.ngre@online.de
@@ -81,7 +96,7 @@ at your option, any later version of Perl 5 you may have available.
 
 =cut
 package Tk::PerlInheritanceTree;
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 use warnings;
 use strict;
 require Class::Inspector;
@@ -281,7 +296,9 @@ sub node_clicked{
 sub _test_{
 
   my $mw = Tk::tkinit();
-  my $cg =$mw->PerlInheritanceTree()
+  my @cln;
+  @cln = (-classname => $_[0]) if $_[0];
+  my $cg =$mw->PerlInheritanceTree(@cln)
     ->pack(-fill   => 'both',
            -expand => 1);
   Tk::MainLoop();
